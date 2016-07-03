@@ -1,0 +1,112 @@
+---
+- hosts: default
+  become: true
+  become_user: root
+  vars:
+    django_project: /vagrant/smartcity
+
+  tasks:
+    - name: Hostname
+      hostname: name=citysmart
+
+    - name: Update all packages to latest version
+      apt: update_cache=yes upgrade=dist
+
+    - name: Set MySQL root password in case of installing
+      debconf: name='mysql-server' question='mysql-server/root_password' value='pass' vtype='password'
+    - name: Confirm MySQL root password in case of installing
+      debconf: name='mysql-server' question='mysql-server/root_password_again' value='pass' vtype='password'
+
+    - name: Install required APT packages
+      apt: pkg={{ item }}
+      with_items:
+        - python-virtualenv
+        - python-pip
+        - nginx
+        - libjpeg-dev
+        - python-dev
+        - libyaml-dev
+        - imagemagick
+        - mysql-server
+        - libmysqlclient-dev
+        - python-mysqldb
+        - uwsgi
+        - uwsgi-plugin-python
+
+    - name: Create storage directories
+      file: path={{ item }} state=directory mode=0777 follow=True
+      with_items:
+        - /storage
+        - /storage/static
+        - /storage/media
+
+    - name: Create database
+      mysql_db: name=smartcity login_user=root login_password=pass state=present
+      register: database
+
+    - name: Install python requirements
+      pip: requirements={{ django_project }}/requirements.txt state=latest
+
+    - name: Migrate database
+      django_manage: command=migrate app_path={{ django_project }}
+
+    - name: Collect static files
+      django_manage: command=collectstatic app_path={{ django_project }}
+
+
+    - name: Copy uWSGI app configuration file
+      copy: src=etc/uwsgi-citysmart.ini dest=/etc/uwsgi/apps-enabled/citysmart.ini
+      notify:
+        - restart uwsgi
+
+    # - name: Copy web server main configuration file
+    #   copy: src=etc/nginx.conf dest=/etc/nginx/nginx.conf
+    #   notify:
+    #     - restart nginx
+
+    - name: Copy web server video site configuration file
+      copy: src=etc/nginx-citysmart.conf dest=/etc/nginx/sites-available/citysmart.conf
+      notify:
+        - restart nginx
+
+    - name: Ensure uWSGI is running
+      service: name=uwsgi state=started
+
+    - name: Ensure NGINX is running
+      service: name=nginx state=started
+
+    # LaJornada
+    # - name: Install lajornada python requirements
+    #   pip: requirements=/vagrant/lajornada_site/requirements.txt state=latest
+
+    # - name: Collect lajornada static files
+    #   django_manage: command=collectstatic app_path=/vagrant/video_site
+
+    # - name: Copy uWSGI lajornada applicaiton configuration file
+    #   copy: src=etc/uwsgi-lajornada.ini dest=/etc/uwsgi/apps-enabled/lajornada.ini
+    #   notify:
+    #     - restart uwsgi
+
+    # - name: Copy web server lajornada site configuration file
+    #   copy: src=etc/nginx-lajornada.conf dest=/etc/nginx/conf.d/lajornada.conf
+    #   notify:
+    #     - restart nginx
+
+    # - name: Ensure uWSGI is running
+    #   service: name=uwsgi state=started
+
+    # - name: Ensure NGINX is running
+    #   service: name=nginx state=started
+
+    # - name: Ensure supervisor is running
+    #   service: name=supervisor state=started
+
+  handlers:
+    - name: restart nginx
+      service: name=nginx state=restarted
+
+    - name: restart uwsgi
+      service: name=uwsgi state=restarted
+
+    - name: reload upstart configuration
+      command: initctl reload-configuration

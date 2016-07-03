@@ -1,0 +1,8 @@
+django>=1.9
+django-phonenumber-field
+django-localflavor
+django-recurrence
+django-autoslug
+django-postalcodes
+django-extensions
+pygraphviz
