@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*- #}
-from condominios.models import Departamento, Desarrollo, Nivel, Torre, 
+from condominios.models import Departamento, Desarrollo, Nivel, Torre
 from humanos.models import Domicilio
 
 
@@ -15,13 +15,13 @@ DESARROLLO = {
         'pais': u'México',
     },
     'torres': ('A', 'B', 'C', 'D', 'E', 'F'),
-    'niveles' = (
+    'niveles': (
         (-5, -1, 'S{numero}', u'Sótano {numero}'),
         (0, 0, 'PB', u'Planta Baja'),
         (1, 21, '{numero}', u'Piso {numero}'),
         (22, 22, 'RG', 'Roof Garden'),
-    )
-    'niveles_habitbables': range(1, 22),
+    ),
+    'niveles_habitables': range(1, 22),
     'departamentos_por_nivel': 4
 }
 

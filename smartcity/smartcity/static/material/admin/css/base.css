@@ -1,0 +1,170 @@
+@import url("_base.css");
+
+body {
+    
+}
+
+.admin-modelicon-amenidades-actividad:before {
+    content: "\e40a";
+}
+.admin-modelicon-amenidades-amenidad:before {
+    content: "\e16b";
+    /*content: "\e903";*/
+}
+.admin-modelicon-amenidades-regla:before {
+    content: "\e242";
+}
+.admin-modelicon-amenidades-cartelera:before {
+    content: "\e8da";
+}
+.admin-modelicon-amenidades-reservacion:before {
+    content: "\e8df";
+}
+
+
+
+.admin-modelicon-finanzas-banco:before {
+    content: "\e84f";
+}
+.admin-modelicon-finanzas-cuentabancaria:before {
+    content: "\e870";
+}
+.admin-modelicon-finanzas-proveedor:before {
+    content: "\e558";
+}
+.admin-modelicon-finanzas-recibo:before {
+    content: "\e8b0";
+}
+.admin-modelicon-finanzas-servicio:before {
+    content: "\e869";
+}
+.admin-modelicon-finanzas-cuota:before {
+    content: "\e91c";
+}
+.admin-modelicon-finanzas-pagocuota:before {
+    content: "\e227";
+}
+
+
+
+
+.admin-modelicon-humanos-preferenciacontacto:before {
+    content: "\e8a8";
+}
+.admin-modelicon-humanos-domicilio:before {
+    content: "\e55e";
+}
+.admin-modelicon-humanos-organizacion:before {
+    content: "\e84f";
+}
+.admin-modelicon-humanos-propuesta:before {
+    content: "\e90f";
+}
+.admin-modelicon-humanos-comentario:before {
+    content: "\e0cb";
+}
+.admin-modelicon-humanos-persona:before {
+    content: "\e7fd";
+    /* content: "\e55a"; */
+}
+.admin-modelicon-humanos-discapacidad:before {
+    content: "\e914";
+}
+
+
+
+
+.admin-modelicon-condominios-departamento:before {
+    content: "\efb";
+}
+.admin-modelicon-condominios-torre:before {
+    content: "\e7ee";
+}
+.admin-modelicon-condominios-desarrollo:before {
+    content: "\e7f1";
+}
+.admin-modelicon-condominios-nivel:before {
+    content: "\e259"; 
+    /* content: "\e8d5"; */
+}
+
+.logo .material-icons {
+}
+
+/*.logo .material-icons:before {
+    content: "\e886" !important;
+}*/
+
+.admin-modelicon-condominios-propiedad:before {
+    content: "\e883";
+}
+.admin-modelicon-condominios-arrendamiento:before {
+    content: "\e882";
+}
+
+.admin-modelicon-condominios-departamento:before {
+    content: "\e88a";
+}
+
+
+
+.admin-modelicon-estacionamiento-lugarestacionamiento:before {
+    content: "\e54f";
+}
+.admin-modelicon-estacionamiento-vehiculo:before {
+    content: "\e613";
+}
+.admin-modelicon-estacionamiento-vehiculoestacionado:before {
+    content: "\e406";
+}
+
+
+
+.admin-modelicon-seguridad-reporte:before {
+    content: "\e90d";
+}
+.admin-modelicon-seguridad-acceso:before {
+    content: "\e88a";
+}
+.admin-modelicon-seguridad-visitas:before {
+    content: "\e88a";
+}
+.admin-modelicon-seguridad-departamento:before {
+    content: "\e88a";
+}
+.admin-modelicon-seguridad-visita:before {
+    content: "\e7f5";
+}
+
+
+
+
+
+
+
+
+.admin-appicon-condominios:before {
+   content: "\e886";
+}
+
+.admin-appicon-finanzas:before {
+   content: "\e263";
+}
+
+.admin-appicon-estacionamiento:before {
+   content: "\e01e";
+}
+.admin-appicon-amenidades:before {
+   content: "\e903";
+}
+.admin-appicon-humanos:before {
+   content: "\e536";
+}
+.admin-appicon-seguridad:before {
+   content: "\e32a";
+}
+.admin-appicon-maquinas:before {
+   content: "\e322";
+}
+
+

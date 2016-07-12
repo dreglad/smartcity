@@ -2,50 +2,390 @@
 from __future__ import unicode_literals
 from datetime import date
 
+from dateutil import relativedelta
 from django.conf import settings
 from django.db import models
+from recurrence.fields import RecurrenceField
+from django.forms.models import model_to_dict
 
 from smartcity.models import ModeloBase, NombrableMixin, EfimeroMixin
 
-class Banco(models.Model):
-    clave = models.CharField(max_length=32)
+
+class MontoMixin(object):
+    """
+    Mixin that handles monto_ndto, IVA and monto_bruto fields on save()
+
+    """
+    def set_monto_fields(self):
+        if self.monto_neto and not self.monto_bruto:
+            if self.iva:
+                self.monto_bruto = \
+                    self.monto_neto * (self.iva / Decimal(100.0) + 1)
+            else:
+                self.monto_bruto = self.monto_neto
+
+        if self.monto_bruto and not self.monto_neto:
+            if self.vat:
+                self.monto_neto = \
+                    Decimal(1.0) / (self.iva / Decimal(100.0) + 1) \
+                    * self.monto_bruto
+            else:
+                self.monto_neto = self.monto_bruto
+
+    def set_valor_fields(self, tipo_field_name):
+        multiplier = 1
+        tipo_ = getattr(self, tipo_field_name)
+        if tipo_ == Transaccion.DEPOSITO:
+            multiplier = -1
+        self.monto_neto = self.monto_neto * multiplier
+        self.monto_bruto = self.monto_bruto * multiplier
+
+
+class Servicio(ModeloBase, NombrableMixin):
+    SEGURIDAD = 'seg'
+    ADMINISTRACION = 'adm'
+    MATENIMIENTO = 'man'
+    TIPO_CHOICES = (
+        (ADMINISTRACION, u'Administración'),
+        (SEGURIDAD, u'Seguridad'),
+        (MATENIMIENTO, u'Mantenimiento'),
+    )
+    tipo = models.CharField(max_length=3, choices=TIPO_CHOICES)
+
+
+class Cuota(ModeloBase, NombrableMixin, EfimeroMixin):
+    monto = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0)
+    recurrencia = RecurrenceField()
+    tolerancia = models.DurationField(blank=True, null=True)
+    recargos = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0)
+
+    def __unicode__(self):
+        return u'{0} (${1:,.2f})'.format(self.nombre, self.monto)
+    class Meta:
+        pass
+
+
+class PagoCuota(ModeloBase, NombrableMixin, EfimeroMixin):
+    cuota = models.ForeignKey('Cuota', related_name='pagos')
+    monto = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0)
+    cuenta_pago = models.ForeignKey(
+        'CuentaBancaria', related_name='pagos_de_cuotas')
+    class Meta:
+        verbose_name = u'pago de cuota'
+        verbose_name_plural = u'pagos de cuotas'
+
+
+class Licitacion(ModeloBase, NombrableMixin):
+    servicio = models.ForeignKey('Servicio')
+    # documentos = models.ManyToManyField('humanos.Documentos')
+    class Meta:
+        verbose_name = u'licitación'
+        verbose_name_plural = u'licitaciones'
+
+
+# class Transaccion(ModeloBase):
+#     pass
+
+
+
+class Factura(ModeloBase):
+    recibo = models.ForeignKey('Recibo', )
+
+
+
+
+class Contrato(ModeloBase, EfimeroMixin):
+    proveedor = models.ForeignKey('humanos.Persona', related_name='contratos')
+    servicio = models.ForeignKey('Servicio', related_name='contratos')
+    recurrencias = RecurrenceField()
+
+    class Meta:
+        ordering = ['-fecha_termino', 'fecha_inicio']
+
+
+class EvaluacionServicio(ModeloBase):
+    persona = models.ForeignKey(
+        'humanos.Persona', related_name='evaluaciones_servicio')
+    contrato = models.ForeignKey(
+        'Contrato', related_name='evaluaciones_servicio')
+
+    class Meta:
+        verbose_name = u'evaluación de servicio'
+        verbose_name_plural = u'evaluaciones de servicio'
+
+
+class Cuenta(models.Model):
+    alias = models.CharField(max_length=128)
+
+    # divisa = models.ForeignKey(
+    #     'currency_history.Currency', related_name='accounts')
+
+    saldo_inicial = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0)
+
+    saldo_total = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0)
+
+    def __unicode__(self):
+        return self.alias
+
+    def get_saldo(self, mes=None):
+        """Returns the balance up until now or until the provided mes."""
+        mes = mes or date(date.today().year, date.today().month, 1)
+        next_mes = mes + relativedelta.relativedelta(months=1)
+        saldo_acumulado = self.transacciones.filter(
+            parent__isnull=True, fecha__lt=next_mes,
+        ).aggregate(models.Sum('valor_bruto'))['valor_bruto__sum'] or 0
+        return self.saldo_inicial + saldo_acumulado
+
+
+
+class Banco(ModeloBase):
+    clave = models.CharField(max_length=64)
     nombre = models.CharField(max_length=255)
 
     def __unicode__(self):
         return self.clave
 
     class Meta:
-        ordering = ['clave']
+        ordering = ['clave', 'nombre']
 
 
-class Transaccion():
-    pass
+class CuentaBancaria(ModeloBase, EfimeroMixin, NombrableMixin):
+    beneficiario = models.ForeignKey(
+        'humanos.Persona', related_name='cuentas_bancarias')
+    banco = models.ForeignKey('Banco', related_name='cuentas_bancarias')
+    numero = models.CharField(u'número', max_length=64, blank=True, null=True)
+    clabe = models.CharField(
+        u'CLABE', help_text=u'Clave Bancaria Estandarizada', null=True,
+        blank=True, max_length=18)
+    referencias = models.TextField(blank=True)
 
-
-class Ingreso():
-    pass
-
-
-class Egreso():
-    pass
-
-
-class CuentaBancaria(ModeloBase, EfimeroMixin):
-    BANCOS_MEXICANOS = (
-        ('BMX', 'Banamex',),
-        ('BVA', 'BBVA Bancomer'),
-        ('SAN', 'Santander'),
-        ('HSB', 'HSBC'),
-        ('BNT', 'Banorte'),
-        ('IXE', 'Ixe banco'),
-    )
-    banco = models.CharField(max_length=64, choices=BANCOS_MEXICANOS)
-    beneficiario = models.ForeignKey('humanos.Persona')
+    def __unicode__(self):
+        return u'{nombre}, {banco} #{numero} a nombre de {beneficiario}'.format(
+            nombre=self.nombre, banco=self.banco, numero=self.numero,
+            beneficiario=self.beneficiario)
 
     class Meta:
         verbose_name = u'cuenta bancaria'
         verbose_name_plural = u'cuentas bancarias'
 
+
+class CuentaPersonal(ModeloBase, EfimeroMixin):
+    beneficiario = models.ForeignKey('humanos.Persona')
+
+    class Meta:
+        verbose_name = u'cuenta bancaria personal'
+        verbose_name_plural = u'cuentas bancarias personales'
+
+
+class CuentaEmpresarial(ModeloBase, EfimeroMixin):
+    beneficiario = models.ForeignKey('humanos.Organizacion')
+
+    class Meta:
+        verbose_name = u'cuenta bancaria empresarial'
+        verbose_name_plural = u'cuentas bancarias empresariales'
+
+
+class Proveedor(ModeloBase, EfimeroMixin):
+    organizacion = models.ForeignKey('humanos.Organizacion')
+
+    class Meta:
+        verbose_name_plural = 'proveedores'
+
+
+
+
+
+
+class ReciboManager(models.Manager):
+    """Custom manager for the ``Invoice`` model."""
+    def get_without_pdf(self):
+        qs = Recibo.objects.filter(pdf='')
+        qs = qs.prefetch_related('transactions', )
+        return qs
+
+
+
+class Recibo(MontoMixin, models.Model):
+    DEPOSITO = 'd'
+    RETIRO = 'r'
+
+    TIPO_CHOICES = (
+        (DEPOSITO, u'Depósito'),
+        (RETIRO, u'Retiro'),
+    )
+
+    tipo = models.CharField(max_length=1, choices=TIPO_CHOICES)
+    fecha = models.DateField()
+    fecha_pago = models.DateField(blank=True, null=True)
+
+    numero = models.CharField(u'número', max_length=256, blank=True)
+    descripcion = models.TextField(u'descripción', blank=True)
+
+    monto_neto = models.DecimalField(max_digits=10, decimal_places=2, default=0, blank=True)
+    monto_bruto = models.DecimalField(max_digits=10, decimal_places=2, default=0, blank=True)
+    iva = models.DecimalField(max_digits=4, decimal_places=2, default=0)
+    valor_neto = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    valor_bruto = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    recibo_pdf = models.FileField(upload_to='recibos', blank=True, null=True)
+    factura_pdf = models.FileField(upload_to='rrecibod', blank=True, null=True)
+    factura_xml = models.FileField(upload_to='facturas/', blank=True, null=True)
+    factura_cbd = models.FileField(upload_to='facturas/', blank=True, null=True)
+
+    objects = ReciboManager()
+
+    class Meta:
+        ordering = ['-fecha', ]
+
+    def __unicode__(self):
+        if self.numero:
+            return self.numero
+        return '{0} - {1}'.format(self.fecha,
+                                  self.get_tipo_display())
+
+    def save(self, *args, **kwargs):
+        self.set_monto_fields()
+        self.set_valor_fields('tipo')
+        return super(Recibo, self).save(*args, **kwargs)
+
+    @property
+    def saldo(self):
+        if not self.transacciones.all():
+            return 0 - self.monto_neto
+
+        total = 0
+        # Convert amounts
+        
+        # Get transacciones for each currency
+        transacciones = self.transacciones.all()
+
+        # if divisa == self.divisa:
+        #     rate = 1
+        # else:
+        #     rate = Decimal(CurrencyRateHistory.objects.filter(
+        #         rate__from_currency=divisa,
+        #         rate__to_currency=self.divisa,
+        #     )[0].value)
+        if transacciones:
+            rate = 1
+            total += rate * transacciones.aggregate(
+            models.Sum('monto_neto'))['monto_neto__sum']
+        return total - self.monto_neto
+
+
+
+
+class TransaccionManager(models.Manager):
+    """Manager for the ``Transaccion`` model."""
+    def get_totals_by_payee(self, account, start_date=None, end_date=None):
+        """
+        Returns transaccion totals grouped by Payee.
+        """
+        qs = Transaccion.objects.filter(account=account, parent__isnull=True)
+        qs = qs.values('payee').annotate(models.Sum('valor_bruto'))
+        qs = qs.order_by('payee__name')
+        return qs
+
+    def get_without_invoice(self):
+        """
+        Returns transacciones that don't have an invoice.
+        We filter out transacciones that have children, because those
+        transacciones never have invoices - their children are the ones that
+        would each have one invoice.
+        """
+        qs = Transaccion.objects.filter(
+            children__isnull=True, invoice__isnull=True)
+        return qs
+
+
+
+class ReciboMantenimiento(Recibo):
+    recurrencias = RecurrenceField()
+
+
+class Transaccion(MontoMixin, models.Model):
+    TRANSACTION_TYPES = {
+        'withdrawal': 'w',
+        'deposit': 'd',
+    }
+
+    TRANSACTION_TYPE_CHOICES = [
+        (TRANSACTION_TYPES['withdrawal'], 'withdrawal'),
+        (TRANSACTION_TYPES['deposit'], 'deposit'),
+    ]
+
+    cuenta = models.ForeignKey(Cuenta, related_name='transacciones')
+
+    parent = models.ForeignKey(
+        'self', models.SET_NULL, related_name='children', blank=True, null=True)
+
+    tipo = models.CharField(
+        max_length=1,
+        choices=TRANSACTION_TYPE_CHOICES,
+    )
+
+    fecha = models.DateField()
+
+    decripcion = models.TextField(blank=True)
+
+    numero = models.CharField(max_length=256, blank=True)
+
+    recibo = models.ForeignKey(
+        'Recibo', blank=True, null=True, related_name='transacciones')
+
+    beneficiario = models.ForeignKey('humanos.Persona', related_name='transacciones')
+
+    # concepto = models.ForeignKey('Category', related_name='transacciones')
+
+    # divisa = models.ForeignKey(
+    #     'currency_history.Currency', related_name='transacciones',)
+
+    monto_neto = models.DecimalField(max_digits=10, decimal_places=2, default=0, blank=True)
+
+    iva = models.DecimalField(max_digits=4, decimal_places=2, default=0)
+    monto_bruto = models.DecimalField(max_digits=10, decimal_places=2, default=0,blank=True,)
+    valor_neto = models.DecimalField(max_digits=10,decimal_places=2,default=0,)
+    valor_bruto = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    objects = TransaccionManager()
+
+    class Meta:
+        ordering = ['-fecha', ]
+
+    def __unicode__(self):
+        if self.numero:
+            return self.numero
+        if self.invoice and self.invoice.numero:
+            return self.invoice.numero
+        return '{0} - {1}'.format(self.payee, self.category)
+
+    def get_decripcion(self):
+        if self.decripcion:
+            return self.decripcion
+        if self.invoice and self.invoice.decripcion:
+            return self.invoice.decripcion
+        decripcion = ''
+        for child in self.children.all():
+            if child.decripcion:
+                decripcion += u'{0},\n'.format(child.decripcion)
+            elif child.invoice and child.invoice.decripcion:
+                decripcion += u'{0},\n'.format(child.invoice.decripcion)
+        return decripcion or u'n/a'
+
+    def get_invoices(self):
+        if self.children.all():
+            return [child.invoice for child in self.children.all()]
+        return [self.invoice, ]
+
+    def save(self, *args, **kwargs):
+        self.set_amount_fields()
+        self.set_value_fields('tipo')
+        return super(Transaccion, self).save(*args, **kwargs)
 
 # class CuentaCheques(CuentaBancaria):
 #     clabe = MXCLABEField(u'CLABE', help_text=u'Clave Bancaria Estandarizada')
@@ -211,19 +551,6 @@ class CuentaBancaria(ModeloBase, EfimeroMixin):
 
 #     class Meta:
 
-
-# class ProgramadoMixin(models.Model):
-#     #recurrencias = recurrence.fields.RecurrenceField()
-#     lunes_lunes = models.TimeField(blank=True, null=True, db_index=True)
-#     lunes_martes = models.TimeField(blank=True, null=True, db_index=True)
-#     lunes_miercoles = models.TimeField(u'miércoles', blank=True, null=True, db_index=True)
-#     lunes_jueves = models.TimeField(blank=True, null=True, db_index=True)
-#     lunes_viernes = models.TimeField(blank=True, null=True, db_index=True)
-#     lunes_sabado = models.TimeField(u'sábado', blank=True, null=True, db_index=True)
-#     lunes_domingo = models.TimeField(blank=True, null=True, db_index=True)
-
-#     class Meta:
-#         abstract = True
 
 
 # class Actividad(ModeloBase, NombrableMixin):

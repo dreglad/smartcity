@@ -2,8 +2,10 @@
 from django.contrib import admin
 
 from humanos.models import *
+from smartcity.admin import SmartCityModelAdmin
 
-class DomicilioAdmin(admin.ModelAdmin):
+
+class DomicilioAdmin(SmartCityModelAdmin):
     list_display = (
         '__unicode__', 'calle', 'numero_exterior', 'numero_interior', 'colonia',
         'delegacion', 'codigo_postal', 'estado', 'pais'
@@ -11,13 +13,26 @@ class DomicilioAdmin(admin.ModelAdmin):
     list_filter = ('codigo_postal', 'delegacion')
 
 
-class PersonaAdmin(admin.ModelAdmin):
+class DiscapacidadInline(admin.StackedInline):
+    model = Discapacidad
+    radio_fields = {
+        'tipo': admin.VERTICAL
+    }
+    extra = 0
+
+
+class PersonaAdmin(SmartCityModelAdmin):
+    inlines = [DiscapacidadInline]
     list_display = (
         '__unicode__', 'nombre', 'apellido_paterno', 'apellido_materno',
-        'genero', 'fecha_nacimiento', 'edad',
+        'genero', 'edad',
     )
     list_filter = ('genero', 'fecha_nacimiento', 'responsables',)
     list_search = ('nombre', 'apellido_paterno', 'apellido_materno',)
+    radio_fields = {
+        "grupo_sanguineo": admin.HORIZONTAL,
+        "rh_sanguineo": admin.HORIZONTAL,
+    }
     fieldsets = (
         (u'Datos básicos', {
             'fields': ('nombre', 'apellido_paterno', 'apellido_materno',)
@@ -30,14 +45,15 @@ class PersonaAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
             'fields': ('razon_social', 'rfc', 'domicilio_fiscal'),
         }),
-        ('Fallecimiento', {
+        ('Datos médicos', {
             'classes': ('collapse',),
-            'fields': ('fecha_fallecimiento', 'lugar_fallecimiento'),
+            'fields': ('grupo_sanguineo', 'rh_sanguineo', 'alergias',
+                       'fecha_fallecimiento', 'lugar_fallecimiento'),
         }),
     )
 
 
-class OrganizacionAdmin(admin.ModelAdmin):
+class OrganizacionAdmin(SmartCityModelAdmin):
     list_display = ('nombre', 'domicilio', 'rfc')
 
 

@@ -5,21 +5,7 @@ from datetime import date
 from django.conf import settings
 from django.db import models
 
-from smartcity.models import ModeloBase, NombrableMixin
-
-
-class ProgramadoMixin(models.Model):
-    #recurrencias = recurrence.fields.RecurrenceField()
-    lunes_lunes = models.TimeField(blank=True, null=True, db_index=True)
-    lunes_martes = models.TimeField(blank=True, null=True, db_index=True)
-    lunes_miercoles = models.TimeField(u'miércoles', blank=True, null=True, db_index=True)
-    lunes_jueves = models.TimeField(blank=True, null=True, db_index=True)
-    lunes_viernes = models.TimeField(blank=True, null=True, db_index=True)
-    lunes_sabado = models.TimeField(u'sábado', blank=True, null=True, db_index=True)
-    lunes_domingo = models.TimeField(blank=True, null=True, db_index=True)
-
-    class Meta:
-        abstract = True
+from smartcity.models import ModeloBase, NombrableMixin, EfimeroMixin, ProgramadoMixin
 
 
 class Actividad(ModeloBase, NombrableMixin):
@@ -59,6 +45,25 @@ class Amenidad(ModeloBase, NombrableMixin):
     class Meta:
         verbose_name_plural = u'amenidades'
         ordering = ['nivel', 'nombre']
+
+
+class Cartelera(ModeloBase, EfimeroMixin):
+    titulo = models.CharField(max_length=255)
+
+    class Meta:
+        verbose_name_plural = u'cartelera'
+
+
+
+class Reservacion(ModeloBase, EfimeroMixin):
+    departamento = models.ForeignKey('condominios.Departamento')
+    cancelado = models.BooleanField(default=False)
+    amenidad = models.ForeignKey('Amenidad', related_name='reservaciones')
+
+    class Meta:
+        ordering = ['-fecha_inicio', '-fecha_termino']
+        verbose_name = u'reservación'
+        verbose_name_plural = u'reservaciones'
 
 
 class Regla(ModeloBase, ProgramadoMixin):

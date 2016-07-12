@@ -40,7 +40,11 @@ class Departamento(ModeloBase):
         choices=((1, u'1'), (2, u'2'), (3, u'3')))
 
     def __unicode__(self):
-        return '%s-%s%02d' % (self.torre, self.nivel.identificador, self.numero)
+        return '%s-%s%s' % (self.torre, self.nivel.identificador, self.numero_display)
+
+    @property
+    def numero_display(self):
+        return u'%02d' % self.numero
 
     class Meta:
         ordering = ['torre', 'nivel', 'numero']
@@ -54,29 +58,6 @@ class Departamento(ModeloBase):
 #     autorizado_por = persona = models.ForeignKey('Persona')
 
 
-
-class LugarEstacionamiento(ModeloBase):
-    """Representa un lugar de estacionamiento"""
-    numero = models.PositiveIntegerField()
-    nivel = models.ForeignKey('Nivel', related_name='lugares_estacionamiento')
-    departamento = models.ForeignKey(
-        'Departamento', blank=True, null=True,
-        related_name='lugares_estacionamiento')
-    estorba_con = models.ManyToManyField('self', blank=True)
-
-    def __unicode__(self):
-        return u'%03d' % self.numero
-
-    def es_lugar_visita(self):
-        return self.departamento is None
-
-    class Meta:
-        ordering = ['numero']
-        verbose_name = u'lugar de estacionamieno'
-        verbose_name_plural = u'lugares de estacionamieno'
-
-
-
 class Nivel(ModeloBase):
     desarrollo = models.ForeignKey('Desarrollo', related_name='niveles')
     identificador = models.CharField(
@@ -88,13 +69,13 @@ class Nivel(ModeloBase):
         max_length=64, help_text=(
             u'Por ejemplo: Piso 4, Planta Baja, Sótano 3, Roof Garden, Piso 21')
     )
-    numero = models.SmallIntegerField(u'número',)
+    numero = models.SmallIntegerField(u'número')
     ## no necesario hay_departamentos = models.BooleanField(help_text=u'¿En este nivel hay departamentos habitables?')
     #hay_amenidades = models.BooleanField(help_text=u'¿En este nivel hay amenidades?')
     #hay_estacionamientos = models.BooleanField(default=False, help_text=u'¿En este nivel hay lugares de estacionamiento?')
 
     def __unicode__(self):
-        return u'%s (%s)' % (self.identificador, self.nombre)
+        return self.identificador
 
     class Meta:
         ordering = ['numero']
@@ -103,29 +84,26 @@ class Nivel(ModeloBase):
 
 class Propiedad(ModeloBase, EfimeroMixin):
     propietario = models.ForeignKey('humanos.Persona', verbose_name=u'propiedades')
-    departamento = models.ForeignKey('Departamento', related_name='propiedades')
+    departamento = models.ForeignKey('condominios.Departamento', related_name='propiedades')
 
     class Meta():
         ordering = ['departamento']
         verbose_name_plural = u'propiedad'
 
-# class Vehiculo(ModeloBase):
-#     placas
-#     responsable
-#     marca
-#     submarca
-#     version
-#     modelo
-#     color
 
-#     class Meta:
-#         verbose_name = u'vehículo'
-#         verbose_name_plural = u'vehículos'
+class Arrendamiento(ModeloBase, EfimeroMixin):
+    arrendador = models.ForeignKey(
+        'humanos.Persona', verbose_name=u'propiedades',
+        related_name='arrendamientos_como_arrendador')
+    arrendatario = models.ForeignKey(
+        'humanos.Persona', verbose_name=u'propiedades',
+        related_name='arrendamientos_como_arrendatario')
+    departamento = models.ForeignKey(
+        'condominios.Departamento', related_name='arrendamientos')
 
-
-# class Reporte(ModeloBase)
-
-# class ReporteVehiculo(Reporte)
+    class Meta():
+        ordering = ['departamento']
+        verbose_name_plural = u'Arrendamiento'
 
 
 # class Estacionada(ModeloBase, EfimeroMixin):

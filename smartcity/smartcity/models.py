@@ -10,8 +10,8 @@ class EfimeroMixin(models.Model):
     Para representar objetos efímeros que tienen una fecha de inicio,
     fecha de término y razón del término
     """
-    fecha_inicio = models.DateField(u'fecha de inicio', db_index=True)
-    fecha_termino = models.DateField(
+    fecha_inicio = models.DateTimeField(u'fecha de inicio', db_index=True)
+    fecha_termino = models.DateTimeField(
         u'fecha de término', null=True, blank=True, db_index=True)
     razon_termino = models.CharField(
         u'razón del término', max_length=255, null=True, blank=True)
@@ -45,6 +45,20 @@ class ModeloBase(models.Model):
     modificado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, editable=False,
         related_name='%(app_label)s_%(class)s_modificados')
+
+    class Meta:
+        abstract = True
+
+
+class ProgramadoMixin(models.Model):
+    #recurrencias = recurrence.fields.RecurrenceField()
+    lunes_lunes = models.TimeField(blank=True, null=True, db_index=True)
+    lunes_martes = models.TimeField(blank=True, null=True, db_index=True)
+    lunes_miercoles = models.TimeField(u'miércoles', blank=True, null=True, db_index=True)
+    lunes_jueves = models.TimeField(blank=True, null=True, db_index=True)
+    lunes_viernes = models.TimeField(blank=True, null=True, db_index=True)
+    lunes_sabado = models.TimeField(u'sábado', blank=True, null=True, db_index=True)
+    lunes_domingo = models.TimeField(blank=True, null=True, db_index=True)
 
     class Meta:
         abstract = True

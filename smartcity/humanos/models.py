@@ -7,6 +7,7 @@ from django.db import models
 from localflavor.mx.models import \
     MXCURPField, MXRFCField, MXStateField, MXZipCodeField
 from phonenumber_field.modelfields import PhoneNumberField
+from recurrence.fields import RecurrenceField
 
 from smartcity.models import ModeloBase, EfimeroMixin
 
@@ -58,12 +59,19 @@ class Organizacion(ModeloBase, ContribuyenteMixin):
     domicilio = models.ForeignKey(
         'Domicilio', blank=True, null=True, related_name='organizaciones')
 
+    class Meta:
+        verbose_name = u'organización'
+        verbose_name_plural = u'organizaciones'
+
 
 class Persona(ModeloBase, ContribuyenteMixin):
     MASCULINO = 'M'; FEMENIMO = 'F'
     GENERO_CHOICES = ((MASCULINO, 'Masculino'), (FEMENIMO, 'Femenino'))
     A = 'A'; B = 'B'; AB = 'AB'; O = 'O'
-    GRUPO_SANGUINEO_CHOICES = zip((A, B, AB, O), (A, B, AB, O))
+    GRUPO_SANGUINEO_CHOICES = zip((None, A, B, AB, O), ('Desconocido', A, B, AB, O))
+    RH_SANGUINEO_CHOICES = (
+        (None, u'Desconocido'), (False, u'Negativo'), (True, u'Positivo')
+    )
 
     nombre = models.CharField(u'nombre(s) de pila', max_length=255)
     domicilio = models.ForeignKey(
@@ -87,11 +95,11 @@ class Persona(ModeloBase, ContribuyenteMixin):
 
     # médico
     grupo_sanguineo = models.CharField(
-        u'grupo sanguíneo', blank=True, max_length=2, choices=GRUPO_SANGUINEO_CHOICES)
-    rh_sanguineo = models.BooleanField(u'RH Sanguíneo', blank=True)
-    alergias = models.TextField(blank=True)
-    discapacidades = models.ManyToManyField(
-        'Discapacidad', blank=True, related_name='personas')
+        u'grupo sanguíneo', blank=True, max_length=2,
+        choices=GRUPO_SANGUINEO_CHOICES)
+    rh_sanguineo = models.NullBooleanField(
+        u'RH Sanguíneo', blank=True, choices=RH_SANGUINEO_CHOICES)
+    alergias = models.TextField(blank=True, default='')
 
     def __unicode__(self):
         return (
@@ -114,27 +122,32 @@ class Persona(ModeloBase, ContribuyenteMixin):
         ordering = ['apellido_paterno', 'apellido_materno', 'nombre']
 
 
-
 class Discapacidad(ModeloBase, EfimeroMixin):
-    AUDITIVO = 'au'; COGNITIVO = 'co'; MOTRIZ = 'mo'; VISUAL = 'vi'; OTRO = 'ot'
+    persona = models.ForeignKey('Persona', related_name='discapacidades')
+    AUDITIVO = 'au'; DESARROLLO = 'de'; MOTRIZ = 'mo'; VISUAL = 'vi'; OTRO = 'ot'
     TIPO_CHOICES = (
-        (AUDITIVO, u'Auditivo'),
-        (COGNITIVO, u'Cognitivo'),
         (MOTRIZ, u'Motriz'),
         (VISUAL, u'Visual'),
+        (AUDITIVO, u'Auditivo'),
+        (DESARROLLO, u'Desarrollo'),
         (OTRO, u'Otro'),
     )
     LEVE = 0; MEDIA = 1; GRAVE = 2
     SEVERIDAD_CHOICES = (
-        (0, u'leve/temporal'),
-        (1, u'media/parcial'),
-        (2, u'grave/total'),
+        (0, u'leve o temporal'),
+        (1, u'moderado o parcial'),
+        (2, u'grave o total'),
     )
     tipo = models.CharField(max_length=2, choices=TIPO_CHOICES)
     severidad = models.PositiveSmallIntegerField()
     observaciones = models.TextField(
         blank=True, help_text=(u'Especifique cualquier información adicional, ' 
                                u'por ejemplo atenciones especiales requeridas'))
+
+    class Meta:
+        verbose_name_plural = u'capacidades especiales'
+
+
 
 
 # class TrabajadorMixin(models.Model):

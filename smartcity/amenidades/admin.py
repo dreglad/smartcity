@@ -2,9 +2,11 @@
 from django.contrib import admin
 
 from amenidades.models import *
+from smartcity.admin import SmartCityModelAdmin
 
 
-class ActividadAdmin(admin.ModelAdmin):
+
+class ActividadAdmin(SmartCityModelAdmin):
     list_display = (
         'nombre', 'tipo',
     )
@@ -18,7 +20,16 @@ class ReglaInline(admin.StackedInline):
     #filter_horizontal = ('niveles',)
 
 
-class AmenidadAdmin(admin.ModelAdmin):
+class CarteleraAdmin(SmartCityModelAdmin):
+    pass
+
+
+
+class ReservacionAdmin(SmartCityModelAdmin):
+    pass
+
+
+class AmenidadAdmin(SmartCityModelAdmin):
     list_display = (
         'nombre', 'capacidad_maxima', 'nivel', 'requiere_reservacion',
         'costo', 'deposito'
@@ -43,7 +54,8 @@ class AmenidadAdmin(admin.ModelAdmin):
         pass
 
 
-class ReglaAdmin(admin.ModelAdmin):
+
+class ReglaAdmin(SmartCityModelAdmin):
     list_display = ('id', 'consumo', 'edades', 'ruido')
 
     # def has_module_permission(self, request, obj=None):
@@ -90,4 +102,6 @@ class ReglaAdmin(admin.ModelAdmin):
 
 admin.site.register(Actividad, ActividadAdmin)
 admin.site.register(Amenidad, AmenidadAdmin)
+admin.site.register(Cartelera, CarteleraAdmin)
 admin.site.register(Regla, ReglaAdmin)
+admin.site.register(Reservacion, ReservacionAdmin)

@@ -1,0 +1,21 @@
+[
+  {
+    "model": "amenidades.Amenidad",
+    "pk": 1,
+    "fields": {
+      "nombre": "Alberca Infinity",
+      "costo": 0,
+      "deposito": 0,
+      "capacidad_maxima": 20,
+      "nivel": 
+    }
+  },
+  {
+    "model": "amenidades.Amenidad",
+    "pk": 2,
+    "fields": {
+      "first_name": "Paul",
+      "last_name": "McCartney"
+    }
+  }
+]

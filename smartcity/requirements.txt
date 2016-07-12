@@ -5,4 +5,4 @@ django-recurrence
 django-autoslug
 django-postalcodes
 django-extensions
-pygraphviz
+django-material

@@ -26,6 +26,9 @@
         - libjpeg-dev
         - python-dev
         - libyaml-dev
+        - graphviz
+        - python-pygraphviz
+        - python-pydot
         - imagemagick
         - mysql-server
         - libmysqlclient-dev
